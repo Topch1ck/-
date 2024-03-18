@@ -27,27 +27,29 @@ class TicTacToe:
                                       command = self.reset_game)
         self.reset_button.grid(row=3, column=0, columnspan=3, sticky="nsew")
 
-    def on_button_click(self, i, j):
+    def on_button_click(self, i, j):  # Функция которая ставит знак игрока.
         if self.board[i*3+j] == " ":  # Проверяем пустая ли клетка.
             self.board[i*3+j] = self.current_player  # Устанавливаем знак текущего игрока.
             self.buttons[i][j].config(text=self.current_player)  # Обновляем клетку на знак текущего игрока.
+            # Ниже логика для оповещающего окна об исходе игры.
             if self.check_winner(i,j):
                 messagebox.showinfo("Победа!", f"Победи игрок '{self.current_player}' ")
                 self.reset_game()
             elif " " not in self.board:
-                messagebox.showinfo("Победа!", f"Ничья!")
+                messagebox.showinfo("Ничья!", f"Ничья!")
                 self.reset_game()
             else:
-                self.current_player = "O" if self.current_player == "X" else "X"  # Смена текущего игрока
+                # Смена текущего игрока
+                self.current_player = "O" if self.current_player == "X" else "X"
 
-    def check_winner(self, i, j):
+    def check_winner(self, i, j):  # Функция для проверки выигрыша.
         row = all(self.board[i * 3 + col] == self.current_player for col in range(3))
         col = all(self.board[row * 3 + j] == self.current_player for row in range(3))
         diag1 = all(self.board[i * 3 + i] == self.current_player for i in range(3))
         diag2 = all(self.board[i * 3 + 2 - i] == self.current_player for i in range(3))
-        return any([row, col, diag1, diag2])
+        return any([row, col, diag1, diag2])  # Вернет истину если один из вариантов окажется истиной.
 
-    def reset_game(self):
+    def reset_game(self):  # Функция сброса игры
         self.current_player = "X"
         self.board = [" " for _ in range(9)]
         for i in range(3):
