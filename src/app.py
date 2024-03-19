@@ -2,59 +2,70 @@ import tkinter as tk
 from tkinter import messagebox
 
 class TicTacToe:
+    BOARD_SIZE = 3
 
     def __init__(self, game_board):
-        self.game_board = game_board  # создание игрового окна
+        self.game_board = game_board
         self.game_board.title("Крестики Нолики")
-        self.current_player = "X"  # установка начального игрока
-        self.board = [" " for _ in range(9)]  # создание пустого игрового поля
-        self.buttons = []  # список для хранения кнопок
+        self.current_player = "X"
+        self.board = [[" " for _ in range(self.BOARD_SIZE)] for _ in range(self.BOARD_SIZE)]
+        self.buttons = []
 
-        for i in range(3):
-            row = []  # список кнопок
-            for j in range(3):
-                button = tk.Button(self.game_board, text=" ",
-                                   font=("Arial", 20),
-                                   height=2,
-                                   width=5,
-                                   command=lambda i=i, j=j: self.on_button_click(i, j))
+        for i in range(self.BOARD_SIZE):
+            row = []
+            for j in range(self.BOARD_SIZE):
+                button = self.create_button(i, j)
                 button.grid(row=i, column=j, sticky="nsew")
                 row.append(button)
             self.buttons.append(row)
 
-        self.reset_button = tk.Button(self.game_board,
-                                      text="Новая Игра",
-                                      command = self.reset_game)
-        self.reset_button.grid(row=3, column=0, columnspan=3, sticky="nsew")
+        self.reset_button = self.create_reset_button()
+        self.reset_button.grid(row=self.BOARD_SIZE, column=0, columnspan=self.BOARD_SIZE, sticky="nsew")
 
-    def on_button_click(self, i, j):  # Функция которая ставит знак игрока.
-        if self.board[i*3+j] == " ":  # Проверяем пустая ли клетка.
-            self.board[i*3+j] = self.current_player  # Устанавливаем знак текущего игрока.
-            self.buttons[i][j].config(text=self.current_player)  # Обновляем клетку на знак текущего игрока.
-            # Ниже логика для оповещающего окна об исходе игры.
-            if self.check_winner(i,j):
-                messagebox.showinfo("Победа!", f"Победи игрок '{self.current_player}' ")
+    def create_button(self, i, j):
+        return tk.Button(self.game_board, text=" ", font=("Arial", 20),
+                            height=2, width=5,
+                            command=lambda i=i, j=j: self.on_button_click(i, j))
+
+    def create_reset_button(self):
+        return tk.Button(self.game_board, text="Новая Игра", command=self.reset_game)
+
+    def on_button_click(self, c, r):
+        if self.board[c][r] == " ":
+            self.board[c][r] = self.current_player
+            self.buttons[c][r].config(text=self.current_player)
+            if self.check_winner(c, r):
+                self.show_message(f"Победил игрок '{self.current_player}' ")
                 self.reset_game()
-            elif " " not in self.board:
-                messagebox.showinfo("Ничья!", f"Ничья!")
+            elif all(cell != " " for row in self.board for cell in row):
+                self.show_message("Ничья!")
                 self.reset_game()
             else:
-                # Смена текущего игрока
-                self.current_player = "O" if self.current_player == "X" else "X"
+                self.switch_player()
 
-    def check_winner(self, i, j):  # Функция для проверки выигрыша.
-        row = all(self.board[i * 3 + col] == self.current_player for col in range(3))
-        col = all(self.board[row * 3 + j] == self.current_player for row in range(3))
-        diag1 = all(self.board[i * 3 + i] == self.current_player for i in range(3))
-        diag2 = all(self.board[i * 3 + 2 - i] == self.current_player for i in range(3))
-        return any([row, col, diag1, diag2])  # Вернет истину если один из вариантов окажется истиной.
+    def show_message(self, message):
+        messagebox.showinfo("Игра окончена", message)
 
-    def reset_game(self):  # Функция сброса игры
+    def check_winner(self, i, j):
+        def check_line(line):
+            return all(cell == self.current_player for cell in line)
+
+        def check_diagonals():
+            return check_line([self.board[i][i] for i in range(self.BOARD_SIZE)]) \
+                    or check_line([self.board[i][self.BOARD_SIZE - 1 - i] for i in range(self.BOARD_SIZE)])
+
+        return check_line(self.board[i]) or check_line([self.board[x][j] for x in range(self.BOARD_SIZE)]) \
+                or check_diagonals()
+
+    def switch_player(self):
+        self.current_player = "O" if self.current_player == "X" else "X"
+
+    def reset_game(self):
         self.current_player = "X"
-        self.board = [" " for _ in range(9)]
-        for i in range(3):
-            for j in range(3):
-                self.buttons[i][j].config(text='')
+        self.board = [[" " for _ in range(self.BOARD_SIZE)] for _ in range(self.BOARD_SIZE)]
+        for row in self.buttons:
+            for button in row:
+                button.config(text='')
 
 root = tk.Tk()
 game = TicTacToe(root)
