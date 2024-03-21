@@ -29,8 +29,25 @@ class TicTacToe:
 
         self.game_number_in_session = 0
         
+        self.create_db()
+
+    def create_db(self):
         with sq.connect("TicTacToe.db") as self.con:
             self.cur = self.con.cursor()
+
+            self.cur.execute("""
+                            CREATE TABLE IF NOT EXISTS Tictactoe(
+                            game_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            winner TEXT,
+                            first_step TEXT,
+                            type_win TEXT,
+                            cs_winner INTEGER,
+                            cs_losser INTEGER,
+                            сs_total INTEGER,
+                            game_in_session INTEGER,
+                            time_game DATETIME
+                            )
+                            """)
     
     def random_player(self):
         players = ["O", "X", "O", "X", "O", "X", "O", "X", "O", "X"]
