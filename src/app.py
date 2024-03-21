@@ -1,6 +1,7 @@
 import tkinter as tk
 import time
 import random
+import sqlite3 as sq
 from tkinter import messagebox
 
 class TicTacToe:
@@ -28,6 +29,8 @@ class TicTacToe:
 
         self.game_number_in_session = 0
         
+        with sq.connect("TicTacToe.db") as self.con:
+            self.cur = self.con.cursor()
     
     def random_player(self):
         players = ["O", "X", "O", "X", "O", "X", "O", "X", "O", "X"]
@@ -51,6 +54,12 @@ class TicTacToe:
         end_time = time.time()
         return end_time - start_time
     
+    def format_time(self, time_in_sec):
+        minutes = int(time_in_sec / 60)
+        seconds = int(time_in_sec % 60)
+        hundredths = int((time_in_sec - int(time_in_sec)) * 100)
+        return f"{minutes:02d}:{seconds:02d}:{hundredths:02d}"
+    
     def on_button_click(self, c, r):
         self.start_time()
         if self.board[c][r] == " ":
@@ -59,14 +68,14 @@ class TicTacToe:
             if self.check_winner(c, r):
                 self.show_message(f"Победил игрок '{self.current_player}' ")
                 self.game_number_in_session += 1
-                print(self.current_player, round(self.calculate_time_game(start_time),2), self.game_number_in_session, self.first_player, self.way_to_win(c,r), self.count_steps_win(), self.count_step_loss())
+                self.send_to_database_w_l(c,r)
                 self.reset_game()
                 
             
             elif all(cell != " " for row in self.board for cell in row):
                 self.show_message("Ничья!")
                 self.game_number_in_session += 1
-                print("N", round(self.calculate_time_game(start_time),2), self.game_number_in_session)
+                self.send_to_database_n()
                 self.reset_game()
             
             else:
@@ -81,7 +90,7 @@ class TicTacToe:
     def check_diagonals(self):
         return self.check_line([self.board[i][i] for i in range(self.BOARD_SIZE)]) \
                 or self.check_line([self.board[i][self.BOARD_SIZE - 1 - i] for i in range(self.BOARD_SIZE)])
-    
+
     def check_winner(self, i, j):
 
         return self.check_line(self.board[i]) or self.check_line([self.board[x][j] for x in range(self.BOARD_SIZE)]) \
@@ -96,16 +105,64 @@ class TicTacToe:
             return f"diag1"
         elif self.check_line([self.board[i][self.BOARD_SIZE - 1 - i] for i in range(self.BOARD_SIZE)]):
             return f"diag2"
-        
+
     def switch_player(self):
         self.current_player = "O" if self.current_player == "X" else "X"
 
     def count_steps_win(self):
         return sum([row.count(self.current_player) for row in self.board])
-    
+
     def count_step_loss(self):
-        self.switch_player()
-        return sum([row.count(self.current_player) for row in self.board])
+        if self.current_player == "X":
+            return sum([row.count("O") for row in self.board])
+        else:
+            return sum([row.count("X") for row in self.board])
+
+    def send_to_database_w_l(self,c,r):
+        self.cur.execute("""
+        INSERT INTO Tictactoe(
+            winner,
+            first_step,
+            type_win,
+            cs_winner,
+            cs_losser,
+            сs_total,
+            game_in_session,
+            time_game
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            self.current_player,
+            self.first_player,
+            self.way_to_win(c, r),
+            self.count_steps_win(),
+            self.count_step_loss(),
+            self.count_step_loss() + self.count_steps_win(),
+            self.game_number_in_session, 
+            self.format_time(round(self.calculate_time_game(start_time), 2)),
+                )
+                            )
+        self.con.commit()
+
+    def send_to_database_n(self):
+        self.cur.execute("""
+        INSERT INTO Tictactoe(
+            winner,
+            first_step,
+            сs_total,
+            game_in_session,
+            time_game
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """, (
+            "N",
+            self.first_player,
+            self.count_step_loss() + self.count_steps_win(),
+            self.game_number_in_session, 
+            self.format_time(round(self.calculate_time_game(start_time), 2)),
+                )
+                            )
+        self.con.commit()
 
     def reset_game(self):
         self.current_player = self.random_player()
